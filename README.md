@@ -23,11 +23,13 @@ Utilize a bitboard representation for efficient computation of legal moves and s
 ### 2.2 MCTS Implementation
 The MCTS algorithm will be adapted to chess gameplay, where the tree structure consists of nodes representing individual chess positions, edges representing possible moves from each position, and a root node corresponding to the current game state. Each iteration of MCTS follows four key stages:
 - **Selection**: The UCT algorithm is used to balance exploration and exploitation during the selection phase. The formula is given by:
+
 $$
 UCT = \frac{Q(v')}{N(v')} + c \sqrt{\frac{\ln N(v)}{N(v')}}
 $$
+
 where:
-$ Q(v') $ denotes the total reward from node $ v' $, $ N(v')$ denotes the number of visits to node $ v' $, $N(v)$ denotes the number of visits to the parent node $v$, $c$ is a constant that controls the exploration-exploitation trade-off.
+$Q(v')$ denotes the total reward from node $v'$, $N(v')$ denotes the number of visits to node $v'$, $N(v)$ denotes the number of visits to the parent node $v$, $c$ is a constant that controls the exploration-exploitation trade-off.
 
 - **Expansion**: when a leaf node is reached, it is expanded by generating all possible legal moves from the current position and creating corresponding child nodes, utilizing the python-chess library to generate legal moves and update the game state.
 - **Simulation**: perform random playouts from the newly expanded node to a terminal state, such as checkmate, stalemate, or draw, while using a lightweight evaluation function to guide the random moves toward more promising outcomes.
