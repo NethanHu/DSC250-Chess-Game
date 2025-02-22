@@ -1,7 +1,15 @@
+# Environment Setup
+> Before you run, please have a correct environment setting.
+> 
+> With Anaconda: `conda create -n chess python=3.10` to set a new virtual environment.
+> 
+> Then activate it with `conda activate chess`. 
+> 
+> Next, run the script in the terminal of the IDE to download the dependencies (including tensorflow-cpu): `pip install -r requirements.txt`.
 
 # Advanced Strategic Decision-Making in Chess Using Monte Carlo Tree Search
 
-Author: Selena Ge, Riqian Hu, Liyuan Jin, Letong Liang
+Authors: Selena Ge, Riqian Hu, Liyuan Jin, Letong Liang
 
 ### Abstract
   Chess has long been a cornerstone for evaluating artificial intelligence due to its complexity, requirement for strategic foresight, and immense decision space. While traditional chess engines have relied heavily on heuristic-based evaluations, recent advancements have increasingly incorporated deep learning techniques to improve performance. This research aims to introduce Monte Carlo Tree Search (MCTS) as a promising approach for enhancing strategic decision-making in chess. MCTS has demonstrated significant success in other gaming domains due to its advanced simulation capabilities, proven effectiveness, and high interpretability compared to purely black-box models.
