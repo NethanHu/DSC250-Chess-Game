@@ -38,7 +38,7 @@ $Q(v')$ denotes the total reward from node $v'$, $N(v')$ denotes the number of v
 
 ## 3. Evaluation Plan
 ### 3.1 Performance Metrics
-- **Average move quality**: ompare the moves suggested by the MCTS algorithm with expert moves from the Kaggle dataset.
+- **Average move quality**: compare the moves suggested by the MCTS algorithm with expert moves from the Kaggle dataset.
 - **Win rate**: evaluate the win rate of MCTS-based engine against traditional chess engines.
 - **Computational Cost**: measure the time and resources required per move to assess the algorithm's efficiency.
 
