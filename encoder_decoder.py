@@ -252,3 +252,24 @@ def decode_action(board,encoded):
                 promoted = "q"
         i_pos.append(initial_pos); f_pos.append(final_pos), prom.append(promoted)
     return i_pos, f_pos, prom
+
+def square_to_index(square):
+    file = ord(square[0]) - ord('a')  # a-h -> 0-7
+    rank = 8 - int(square[1])  # 1-8 -> 7-0
+    return rank, file
+
+def move_to_pos(move):
+    init = square_to_index(move[:2])
+    final = square_to_index(move[2:])
+    return init, final
+
+def move_on_board(board, move):
+    """
+    Board: chess_board.board
+    Move: string
+
+    Returns: int, need to be one-hot encoded
+    """
+    init, final = move_to_pos(move)
+    move = encode_action(board,init,final,None)
+    return move
