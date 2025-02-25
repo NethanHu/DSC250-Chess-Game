@@ -34,9 +34,9 @@ class ConvBlock(nn.Module):
     def __init__(self):
         super(ConvBlock, self).__init__()
         # 棋盘有 8x8 的格子，每个位置可能有 73 种可能的动作（如移动方向、吃子等）
-        self.action_size = 8 * 8 * 73 # 暂时先不使用
-        self.conv0 = nn.Conv2d(13, 22, 3, stride=1, padding=1) # 设置这个纯粹是为了满足当前输入的需要
-        self.bn0 = nn.BatchNorm2d(22)
+        # self.action_size = 8 * 8 * 73 # 暂时先不使用
+        # self.conv0 = nn.Conv2d(13, 22, 3, stride=1, padding=1) # 设置这个纯粹是为了满足当前输入的需要
+        # self.bn0 = nn.BatchNorm2d(22)
         # 通道数从输入的 22 增加到 256，提取到 256 个局部特征映射
         self.conv1 = nn.Conv2d(22, 256, 3, stride=1, padding=1)
         self.bn1 = nn.BatchNorm2d(256)
@@ -44,8 +44,8 @@ class ConvBlock(nn.Module):
     def forward(self, s):
         print(s.shape)
         # s = s.reshape(-1, 13, 8, 8)  # batch_size x channels x board_x x board_y
-        s = F.relu(self.bn0(self.conv0(s)))
-        # s = s.reshape(-1, 22, 8, 8)  # batch_size x channels x board_x x board_y
+        # s = F.relu(self.bn0(self.conv0(s)))
+        s = s.reshape(-1, 22, 8, 8)  # batch_size x channels x board_x x board_y
         s = F.relu(self.bn1(self.conv1(s)))
         return s  # (batch_size, 256, 8, 8)
 
@@ -110,8 +110,8 @@ class ChessNet(nn.Module):
         self.conv = ConvBlock()
         for block in range(19):
             setattr(self, "res_%i" % block,ResBlock())
-        # self.outblock = OutBlock() # 我们暂时放弃 MCTS 的双输出
-        self.outblock = SimpleOutBlock()
+        self.outblock = OutBlock() # MCTS ResNet 的双输出
+        # self.outblock = SimpleOutBlock()
 
     def forward(self,s):
         # 来自于数据集，经过 BoardData 数据加载器加载后的数据
