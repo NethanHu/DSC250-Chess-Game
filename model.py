@@ -79,6 +79,7 @@ class OutBlock(nn.Module):
         # 输入通道数为 256，输出通道数为 1，(batch_size, 1, 8, 8)
         self.conv = nn.Conv2d(256, 1, kernel_size=1)  # value head
         self.bn = nn.BatchNorm2d(1)
+        self.flatten = nn.Flatten()
         self.fc1 = nn.Linear(8 * 8, 64)
         self.fc2 = nn.Linear(64, 1) # 转化为一个标量
 
@@ -92,11 +93,13 @@ class OutBlock(nn.Module):
     def forward(self, s):
         v = F.relu(self.bn(self.conv(s)))  # value head
         # v = v.reshape(-1, 8 * 8)  # batch_size X channel X height X width
+        v = self.flatten(v)
         v = F.relu(self.fc1(v))
         v = F.tanh(self.fc2(v))
 
         p = F.relu(self.bn1(self.conv1(s)))  # policy head
         # p = p.reshape(-1, 8 * 8 * 128)
+        p = self.flatten(p)
         p = self.fc(p)
         p = self.logSoftmax(p).exp()
         return p, v  # 获取 策略分布(p) 和 局面价值(v)
