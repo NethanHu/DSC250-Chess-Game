@@ -81,14 +81,13 @@ class OutBlock(nn.Module):
         self.bn = nn.BatchNorm2d(1)
         self.flatten = nn.Flatten()
         self.fc1 = nn.Linear(8 * 8, 64)
-        self.fc2 = nn.Linear(64, 1) # 转化为一个标量
+        self.fc2 = nn.Linear(64, 1)  # 转化为一个标量
 
         # 输入通道数为 256，输出通道数为 128
         self.conv1 = nn.Conv2d(256, 128, kernel_size=1)  # policy head
         self.bn1 = nn.BatchNorm2d(128)
         self.logSoftmax = nn.LogSoftmax(dim=1)
-        self.fc = nn.Linear(8 * 8 * 128, 8 * 8 * 73) # 将输入大小从 (8x8*128) 映射到动作空间大小 8x8*73=4672
-
+        self.fc = nn.Linear(8 * 8 * 128, 8 * 8 * 73)  # 将输入大小从 (8x8*128) 映射到动作空间大小 8x8*73=4672
 
     def forward(self, s):
         v = F.relu(self.bn(self.conv(s)))  # value head
@@ -112,11 +111,11 @@ class ChessNet(nn.Module):
         super(ChessNet, self).__init__()
         self.conv = ConvBlock()
         for block in range(19):
-            setattr(self, "res_%i" % block,ResBlock())
-        self.outblock = OutBlock() # MCTS ResNet 的双输出
+            setattr(self, "res_%i" % block, ResBlock())
+        self.outblock = OutBlock()  # MCTS ResNet 的双输出
         # self.outblock = SimpleOutBlock()
 
-    def forward(self,s):
+    def forward(self, s):
         # 来自于数据集，经过 BoardData 数据加载器加载后的数据
         # 一开始的形状可能是 (batch_size, 22, 8, 8)
         s = self.conv(s)
@@ -127,6 +126,7 @@ class ChessNet(nn.Module):
             s = getattr(self, "res_%i" % block)(s)
         s = self.outblock(s)
         return s
+
 
 # 原来的 OutBlock 需要和 MCTS 相结合使用，会输出两个值
 # 为了满足此次作业的要求，我们先只输出一个值，为了满足模型 y-label 的需要
@@ -143,5 +143,3 @@ class SimpleOutBlock(nn.Module):
         x = self.relu(self.hidden(x))
         x = self.output(x)
         return x
-
-
