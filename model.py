@@ -45,7 +45,7 @@ class ConvBlock(nn.Module):
         self.bn1 = nn.BatchNorm2d(256)
 
     def forward(self, s):
-        print("Size of input to ConvBlock:", s.shape)
+        # print("Size of input to ConvBlock:", s.shape)
         # s = s.reshape(-1, 13, 8, 8)  # batch_size x channels x board_x x board_y
         # s = F.relu(self.bn0(self.conv0(s)))
         s = s.reshape(-1, 22, 8, 8)  # batch_size x channels x board_x x board_y
@@ -97,7 +97,7 @@ class OutBlock(nn.Module):
         # v = v.reshape(-1, 8 * 8)  # batch_size X channel X height X width
         v = self.flatten(v)
         v = F.relu(self.fc1(v))
-        v = F.tanh(self.fc2(v))
+        v = F.relu(self.fc2(v))
 
         p = F.relu(self.bn1(self.conv1(s)))  # policy head
         # p = p.reshape(-1, 8 * 8 * 128)
@@ -113,7 +113,7 @@ class ChessNet(nn.Module):
     def __init__(self):
         super(ChessNet, self).__init__()
         self.conv = ConvBlock()
-        for block in range(19):
+        for block in range(4): # from 19 -> 9 -> 4
             setattr(self, "res_%i" % block, ResBlock())
         self.outblock = OutBlock()  # MCTS ResNet 的双输出
         # self.outblock = SimpleOutBlock()
@@ -123,7 +123,7 @@ class ChessNet(nn.Module):
         # 一开始的形状可能是 (batch_size, 22, 8, 8)
         s = self.conv(s)
         # 经过 ConvBlock 之后 (batch_size, 22, 8, 8) -> (batch_size, 256, 8, 8)
-        for block in range(19):
+        for block in range(4): # from 19 -> 9 -> 4
             # 定义 19 层的 ResNet，但是每层都不会添加新的通道数
             # (batch_size, 256, 8, 8) -> (batch_size, 256, 8, 8)
             s = getattr(self, "res_%i" % block)(s)

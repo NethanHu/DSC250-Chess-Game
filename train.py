@@ -14,11 +14,12 @@ import matplotlib.pyplot as plt
 class AlphaLoss(nn.Module):
     def __init__(self):
         super(AlphaLoss, self).__init__()
+        self.alpha = 0.9 # value 所占的比重
 
     def forward(self, y_value, value, y_policy, policy):
         value_error = (value - y_value) ** 2
         policy_error = torch.sum((-policy * (1e-6 + y_policy.float()).float().log()), 1)
-        total_error = (value_error.reshape(-1).float() + policy_error).mean()
+        total_error = (self.alpha * value_error.reshape(-1).float() + (1 - self.alpha) * policy_error).mean()
         return total_error
 
 
