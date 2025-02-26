@@ -14,20 +14,23 @@ e.g.: 这里的数据格式以 (batch_size, 22, 8, 8) 举例
 """
 
 
-class BoardData(Dataset):
-    def __init__(self, dataset):  # dataset = np.array of (s, p, v)
-        self.X = dataset[:, 0]
-        self.y_p, self.y_v = dataset[:, 1], dataset[:, 2]
+# Custom Dataset class to handle X and y pairs
+class ChessDataset(Dataset):
+    def __init__(self, X, param_dict):
+        self.X = X
+        self.best_move = param_dict['best_move'] # 需要进行 embedding -> [73 * 8 * 8]
+        self.winner = param_dict['winner']
 
     def __len__(self):
         return len(self.X)
 
     def __getitem__(self, idx):
-        # Convert data to PyTorch tensors and ensure float type for the input
-        board = torch.tensor(self.X[idx].transpose(2, 0, 1), dtype=torch.float)
-        policy = torch.tensor(self.y_p[idx], dtype=torch.float)
-        value = torch.tensor(self.y_v[idx], dtype=torch.float)
-        return board, policy, value
+        X_tensor = torch.tensor(self.X[idx], dtype=torch.float32)
+        # 将 best_move 和 winner 转为张量
+        best_move_tensor = torch.tensor(self.best_move[idx], dtype=torch.float32)
+        winner_tensor = torch.tensor(self.winner[idx], dtype=torch.int8)
+        # 返回 X[idx] 和处理后的张量
+        return X_tensor, (best_move_tensor, winner_tensor)
 
 
 class ConvBlock(nn.Module):
@@ -42,7 +45,7 @@ class ConvBlock(nn.Module):
         self.bn1 = nn.BatchNorm2d(256)
 
     def forward(self, s):
-        print(s.shape)
+        print("Size of input to ConvBlock:", s.shape)
         # s = s.reshape(-1, 13, 8, 8)  # batch_size x channels x board_x x board_y
         # s = F.relu(self.bn0(self.conv0(s)))
         s = s.reshape(-1, 22, 8, 8)  # batch_size x channels x board_x x board_y
@@ -101,7 +104,7 @@ class OutBlock(nn.Module):
         p = self.flatten(p)
         p = self.fc(p)
         p = self.logSoftmax(p).exp()
-        return p, v  # 获取 策略分布(p) 和 局面价值(v)
+        return {'p': p, 'v': v}  # 获取 策略分布(p) 和 局面价值(v)
         # p: (batch_size, 8*8*73)，表示每个样本的所有动作的可能性概率分布
         # v: 表示每个样本经过评估后的局面优劣值，取值 [-1, 1]
 
@@ -124,8 +127,8 @@ class ChessNet(nn.Module):
             # 定义 19 层的 ResNet，但是每层都不会添加新的通道数
             # (batch_size, 256, 8, 8) -> (batch_size, 256, 8, 8)
             s = getattr(self, "res_%i" % block)(s)
-        s = self.outblock(s)
-        return s
+        res_dict = self.outblock(s)
+        return res_dict
 
 
 # 原来的 OutBlock 需要和 MCTS 相结合使用，会输出两个值

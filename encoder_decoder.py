@@ -1,4 +1,6 @@
 import numpy as np
+
+import FEN_to_chessboard
 from chess_board import board as chessboard
 
 
@@ -69,6 +71,8 @@ def encode_action(board, initial_pos, final_pos, underpromote=None):
     x, y = final_pos
     dx, dy = x - i, y - j
     piece = board.current_board[i, j]
+    # Initialize idx with None, will catch cases where idx is not assigned
+    idx = None
     if piece in ["R", "B", "Q", "K", "P", "r", "b", "q", "k", "p"] and underpromote in [None,
                                                                                         "queen"]:  # queen-like moves
         if dx != 0 and dy == 0:  # north-south idx 0-13
@@ -130,6 +134,12 @@ def encode_action(board, initial_pos, final_pos, underpromote=None):
                 idx = 71
             if underpromote == "bishop":
                 idx = 72
+        # Raise an error if idx was not set
+    # if idx is None:
+    #     raise ValueError(
+    #         f"Invalid move or piece: piece={piece}, initial_pos={initial_pos}, "
+    #         f"final_pos={final_pos}, underpromote={underpromote}, dx={dx}, dy={dy}"
+    #     )
     encoded[i, j, idx] = 1
     encoded = encoded.reshape(-1)
     encoded = np.where(encoded == 1)[0][0]  # index of action
@@ -265,23 +275,38 @@ def decode_action(board, encoded):
         f_pos.append(final_pos), prom.append(promoted)
     return i_pos, f_pos, prom
 
+
 def square_to_index(square):
     file = ord(square[0]) - ord('a')  # a-h -> 0-7
     rank = 8 - int(square[1])  # 1-8 -> 7-0
     return rank, file
+
 
 def move_to_pos(move):
     init = square_to_index(move[:2])
     final = square_to_index(move[2:])
     return init, final
 
+
 def move_on_board(board, move):
-    """
+    """ numpy.ndarray
     Board: chess_board.board
     Move: string
 
     Returns: int, need to be one-hot encoded
     """
     init, final = move_to_pos(move)
-    move = encode_action(board,init,final,None)
-    return move
+    move = encode_action(board, init, final, None)
+    move_one_hot = np.zeros(4672, dtype=int)  # Initialize a zero vector of length 4672
+    move_one_hot[move] = 1  # Set the position corresponding to the move index to 1
+    return move_one_hot
+
+
+# TEST ENTRY
+if __name__ == "__main__":
+    FEN = "r5k1/1p3r1p/1qpP2pB/p1N1pn2/2P4b/P4B1P/1P2K1QR/R7 w - - 3 29"
+    best_move = "a1d1"
+    move = move_on_board(FEN_to_chessboard.FenToChessBoard.fen_to_board(FEN), best_move)
+    print(move) # 返回 4111 需要 one-hot 编码
+
+
