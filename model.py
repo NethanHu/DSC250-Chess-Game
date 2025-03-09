@@ -7,10 +7,10 @@ import matplotlib
 matplotlib.use("Agg")
 
 """
-board_data 类的作用是将一个 NumPy 格式的对局数据集
-    如 (status, policy, value) 封装成 PyTorch 标准数据集，用于训练模型。
-** 如果需要修改传入的数据格式，应该在这里进行修改
-e.g.: 这里的数据格式以 (batch_size, 22, 8, 8) 举例
+The purpose of the board_data class is to encapsulate a NumPy-format game dataset, 
+such as (status, policy, value), into a standard PyTorch dataset for model training.
+If the input data format needs to be modified, it should be done here.
+e.g.: The data format here is exemplified as (batch_size, 22, 8, 8).
 """
 
 
@@ -18,7 +18,7 @@ e.g.: 这里的数据格式以 (batch_size, 22, 8, 8) 举例
 class ChessDataset(Dataset):
     def __init__(self, X, param_dict):
         self.X = X
-        self.best_move = param_dict['best_move'] # 需要进行 embedding -> [73 * 8 * 8]
+        self.best_move = param_dict['best_move'] # need processing embedding -> [73 * 8 * 8]
         self.winner = param_dict['winner']
 
     def __len__(self):
@@ -26,23 +26,26 @@ class ChessDataset(Dataset):
 
     def __getitem__(self, idx):
         X_tensor = torch.tensor(self.X[idx], dtype=torch.float32)
-        # 将 best_move 和 winner 转为张量
+        # Convert best_move and winner to tensors
         best_move_tensor = torch.tensor(self.best_move[idx], dtype=torch.float32)
         winner_tensor = torch.tensor(self.winner[idx], dtype=torch.int8)
-        # 返回 X[idx] 和处理后的张量
+        # Return X[idx] and the processed tensors
         return X_tensor, (best_move_tensor, winner_tensor)
 
 
 class ConvBlock(nn.Module):
     def __init__(self):
         super(ConvBlock, self).__init__()
-        # 棋盘有 8x8 的格子，每个位置可能有 73 种可能的动作（如移动方向、吃子等）
-        # self.action_size = 8 * 8 * 73 # 暂时先不使用
-        # self.conv0 = nn.Conv2d(13, 22, 3, stride=1, padding=1) # 设置这个纯粹是为了满足当前输入的需要
+        # The chessboard has an 8x8 grid, and each position can have 73 possible moves 
+        # (e.g., movement directions, captures, etc.)
+        # self.action_size = 8 * 8 * 73  # Temporarily unused
+        # A convolutional layer set up purely to match the current input requirements
+        # self.conv0 = nn.Conv2d(13, 22, 3, stride=1, padding=1)
         # self.bn0 = nn.BatchNorm2d(22)
-        # 通道数从输入的 22 增加到 256，提取到 256 个局部特征映射
+        # Increase the number of channels from the input 22 to 256, extracting 256 local feature maps
         self.conv1 = nn.Conv2d(22, 256, 3, stride=1, padding=1)
         self.bn1 = nn.BatchNorm2d(256)
+
 
     def forward(self, s):
         # print("Size of input to ConvBlock:", s.shape)
@@ -54,7 +57,7 @@ class ConvBlock(nn.Module):
 
 
 class ResBlock(nn.Module):
-    # 输入输出都是 256 个通道
+    # Dim of input and output are all 256
     def __init__(self, inplanes=256, planes=256, stride=1, downsample=None):
         super(ResBlock, self).__init__()
         self.conv1 = nn.Conv2d(inplanes, planes, kernel_size=3, stride=stride,
@@ -65,7 +68,7 @@ class ResBlock(nn.Module):
         self.bn2 = nn.BatchNorm2d(planes)
 
     def forward(self, x):
-        # 输入维度大小 (batch_size, inplanes, H, W)
+        # Input dimension (batch_size, inplanes, H, W)
         residual = x
         out = self.conv1(x)
         out = F.relu(self.bn1(out))
@@ -73,24 +76,25 @@ class ResBlock(nn.Module):
         out = self.bn2(out)
         out += residual
         out = F.relu(out)
-        return out  # 输出维度大小 (batch_size, planes, H, W)
+        return out  # Output dimension (batch_size, planes, H, W)
 
 
 class OutBlock(nn.Module):
     def __init__(self):
         super(OutBlock, self).__init__()
-        # 输入通道数为 256，输出通道数为 1，(batch_size, 1, 8, 8)
+        # Number of input channels: 256, Number of output channels: 1，(batch_size, 1, 8, 8)
         self.conv = nn.Conv2d(256, 1, kernel_size=1)  # value head
         self.bn = nn.BatchNorm2d(1)
         self.flatten = nn.Flatten()
         self.fc1 = nn.Linear(8 * 8, 64)
-        self.fc2 = nn.Linear(64, 1)  # 转化为一个标量
+        self.fc2 = nn.Linear(64, 1)  # Convert to a scalar
 
-        # 输入通道数为 256，输出通道数为 128
+        # Number of input channels: 256, Number of output channels: 128
         self.conv1 = nn.Conv2d(256, 128, kernel_size=1)  # policy head
         self.bn1 = nn.BatchNorm2d(128)
         self.logSoftmax = nn.LogSoftmax(dim=1)
-        self.fc = nn.Linear(8 * 8 * 128, 8 * 8 * 73)  # 将输入大小从 (8x8*128) 映射到动作空间大小 8x8*73=4672
+        self.fc = nn.Linear(8 * 8 * 128, 8 * 8 * 73)  # Map the input size from (8x8*128) to the action space size 8x8*73 = 4672
+
 
     def forward(self, s):
         v = F.relu(self.bn(self.conv(s)))  # value head
@@ -104,9 +108,9 @@ class OutBlock(nn.Module):
         p = self.flatten(p)
         p = self.fc(p)
         p = self.logSoftmax(p).exp()
-        return {'p': p, 'v': v}  # 获取 策略分布(p) 和 局面价值(v)
-        # p: (batch_size, 8*8*73)，表示每个样本的所有动作的可能性概率分布
-        # v: 表示每个样本经过评估后的局面优劣值，取值 [-1, 1]
+        return {'p': p, 'v': v}  # Obtain policy distribution (p) and position value (v)
+        # p: (batch_size, 8*8*73), represents the probability distribution of all possible moves for each sample
+        # v: Represents the evaluated positional advantage of each sample, with values in the range [-1, 1]
 
 
 class ChessNet(nn.Module):
@@ -115,24 +119,19 @@ class ChessNet(nn.Module):
         self.conv = ConvBlock()
         for block in range(19): # from 19 -> 9 -> 4
             setattr(self, "res_%i" % block, ResBlock())
-        self.outblock = OutBlock()  # MCTS ResNet 的双输出
+        self.outblock = OutBlock()
         # self.outblock = SimpleOutBlock()
 
     def forward(self, s):
-        # 来自于数据集，经过 BoardData 数据加载器加载后的数据
-        # 一开始的形状可能是 (batch_size, 22, 8, 8)
         s = self.conv(s)
-        # 经过 ConvBlock 之后 (batch_size, 22, 8, 8) -> (batch_size, 256, 8, 8)
+        # After ConvBlock being processed (batch_size, 22, 8, 8) -> (batch_size, 256, 8, 8)
         for block in range(4): # from 19 -> 9 -> 4
-            # 定义 19 层的 ResNet，但是每层都不会添加新的通道数
             # (batch_size, 256, 8, 8) -> (batch_size, 256, 8, 8)
             s = getattr(self, "res_%i" % block)(s)
         res_dict = self.outblock(s)
         return res_dict
 
 
-# 原来的 OutBlock 需要和 MCTS 相结合使用，会输出两个值
-# 为了满足此次作业的要求，我们先只输出一个值，为了满足模型 y-label 的需要
 class SimpleOutBlock(nn.Module):
     def __init__(self):
         super(SimpleOutBlock, self).__init__()
