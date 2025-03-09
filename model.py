@@ -113,7 +113,7 @@ class ChessNet(nn.Module):
     def __init__(self):
         super(ChessNet, self).__init__()
         self.conv = ConvBlock()
-        for block in range(4): # from 19 -> 9 -> 4
+        for block in range(19): # from 19 -> 9 -> 4
             setattr(self, "res_%i" % block, ResBlock())
         self.outblock = OutBlock()  # MCTS ResNet 的双输出
         # self.outblock = SimpleOutBlock()

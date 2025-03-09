@@ -14,7 +14,7 @@ import matplotlib.pyplot as plt
 class AlphaLoss(nn.Module):
     def __init__(self):
         super(AlphaLoss, self).__init__()
-        self.alpha = 0.9 # value 所占的比重
+        self.alpha = 0.5 # value 所占的比重
 
     def forward(self, y_value, value, y_policy, policy):
         value_error = (value - y_value) ** 2
